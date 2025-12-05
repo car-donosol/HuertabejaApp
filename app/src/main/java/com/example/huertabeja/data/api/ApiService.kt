@@ -47,4 +47,49 @@ interface ProductApiService {
 
     @GET("{slug}")  // Obtener producto por slug en lugar de ID
     suspend fun getProductBySlug(@Path("slug") slug: String): Response<Product>
+    
+    // Operaciones de administración de productos
+    @POST(".")
+    suspend fun createProduct(@Body product: com.example.huertabeja.data.model.CreateProductRequest): Response<com.example.huertabeja.data.model.ProductResponse>
+    
+    @retrofit2.http.PUT("{slug}")
+    suspend fun updateProduct(
+        @Path("slug") slug: String,
+        @Body product: com.example.huertabeja.data.model.UpdateProductRequest
+    ): Response<com.example.huertabeja.data.model.ProductResponse>
+    
+    @retrofit2.http.DELETE("{slug}")
+    suspend fun deleteProduct(@Path("slug") slug: String): Response<com.example.huertabeja.data.model.ProductResponse>
+}
+
+// Interface específica para ventas
+interface SalesApiService {
+    
+    /**
+     * Registrar una nueva venta
+     * POST /api/sales
+     */
+    @POST("api/sales")
+    suspend fun createSale(@Body saleRequest: com.example.huertabeja.data.model.CreateSaleRequest): Response<com.example.huertabeja.data.model.CreateSaleResponse>
+    
+    /**
+     * Obtener todas las ventas
+     * GET /api/sales
+     */
+    @GET("api/sales")
+    suspend fun getAllSales(): Response<com.example.huertabeja.data.model.SalesResponse>
+    
+    /**
+     * Obtener ventas por usuario
+     * GET /api/sales/user/{userId}
+     */
+    @GET("api/sales/user/{userId}")
+    suspend fun getSalesByUserId(@Path("userId") userId: String): Response<com.example.huertabeja.data.model.SalesResponse>
+    
+    /**
+     * Obtener una venta específica por ID
+     * GET /api/sales/{id}
+     */
+    @GET("api/sales/{id}")
+    suspend fun getSaleById(@Path("id") saleId: String): Response<com.example.huertabeja.data.model.Sale>
 }

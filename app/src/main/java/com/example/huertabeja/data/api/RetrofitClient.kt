@@ -14,6 +14,9 @@ object RetrofitClient {
     // Base URL para productos y pedidos
     private const val PRODUCTS_BASE_URL = "https://servicio-productos.fly.dev/"
     
+    // Base URL para ventas (actualiza esta URL con la del microservicio de ventas)
+    private const val SALES_BASE_URL = "https://servicio-pedidos.fly.dev/"
+    
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
@@ -39,10 +42,18 @@ object RetrofitClient {
         .addConverterFactory(GsonConverterFactory.create())
         .build()
     
+    // Retrofit para ventas
+    private val retrofitSales = Retrofit.Builder()
+        .baseUrl(SALES_BASE_URL)
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    
     // Servicio para usuarios (mantiene compatibilidad con código existente)
     val apiService: ApiService = retrofitUsers.create(ApiService::class.java)
     
     // Servicios separados
     val userService: UserApiService = retrofitUsers.create(UserApiService::class.java)
     val productService: ProductApiService = retrofitProducts.create(ProductApiService::class.java)
+    val salesService: SalesApiService = retrofitSales.create(SalesApiService::class.java)
 }

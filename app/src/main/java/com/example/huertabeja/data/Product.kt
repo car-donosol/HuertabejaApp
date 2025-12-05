@@ -1,6 +1,10 @@
 package com.example.huertabeja.data
 
+import com.google.gson.annotations.SerializedName
+
 data class Product(
+    @SerializedName("_id")
+    val id: String? = null,
     val title: String,
     val price: Int,
     val price_offer: Int = 0,

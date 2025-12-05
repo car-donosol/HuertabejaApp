@@ -35,6 +35,7 @@ import com.example.huertabeja.navigation.AppScreens
 import com.example.huertabeja.ui.viewmodel.PerfilUiState
 import com.example.huertabeja.ui.viewmodel.PerfilViewModel
 import com.example.huertabeja.utils.SessionManager
+import com.example.huertabeja.utils.AdminUtils
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -95,6 +96,9 @@ fun PerfilScreen(
     val userName = displayUser?.pnombre ?: "Usuario"
     val userEmail = displayUser?.email ?: "email@example.com"
     val isLoading = uiState is PerfilUiState.Loading
+    
+    // Verificar si el usuario es administrador
+    val isAdmin = AdminUtils.isAdmin(displayUser)
 
     Column(
         modifier = Modifier
@@ -146,18 +150,17 @@ fun PerfilScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Botón cuadrado de Pedidos
+        // Botones de acción
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 32.dp),
-            horizontalArrangement = Arrangement.Start
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
+            // Botón de Pedidos
             Column(
-                modifier = Modifier.padding(8.dp)
-                    .background(color = Color(0xFFDED8CA)),
-                horizontalAlignment = Alignment.CenterHorizontally,
-
+                modifier = Modifier.padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
                     modifier = Modifier
@@ -165,8 +168,7 @@ fun PerfilScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color(0xFFC4BEB0))
                         .clickable {
-                            // TODO: Navegar a la pantalla de pedidos
-                            Toast.makeText(context, "Ir a Pedidos", Toast.LENGTH_SHORT).show()
+                            navController.navigate(AppScreens.OrdersScreen.route)
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -181,6 +183,36 @@ fun PerfilScreen(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
+            }
+            
+            // Botón de Administración (solo para usuarios con @huertabeja.com)
+            if (isAdmin) {
+                Column(
+                    modifier = Modifier.padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF4CAF50))
+                            .clickable {
+                                navController.navigate(AppScreens.AdminScreen.route)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "⚙️",
+                            fontSize = 32.sp,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Admin",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
 

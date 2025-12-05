@@ -47,12 +47,15 @@ fun AppNavigation() {
         AppScreens.AboutScreen.route -> "Sobre Nosotros"
         AppScreens.LoginScreen.route -> "Perfil"
         AppScreens.OrdersScreen.route -> "Mis Pedidos"
+        AppScreens.AdminScreen.route -> "Administración de Productos"
         else -> "Huertabeja"
     }
 
     Scaffold(
         topBar = {
-            if (currentRoute != AppScreens.LoginScreen.route && currentRoute != AppScreens.RegisterScreen.route) {
+            if (currentRoute != AppScreens.LoginScreen.route && 
+                currentRoute != AppScreens.RegisterScreen.route &&
+                currentRoute != AppScreens.HomeScreen.route) {
                 TopAppBar(
                     title = { Text(screenTitle) },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -60,12 +63,25 @@ fun AppNavigation() {
                         titleContentColor = Color.White
                     ),
                     navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = Color.White
-                            )
+                        if (currentRoute != AppScreens.HomeScreen.route) {
+                            IconButton(onClick = { 
+                                if (navController.previousBackStackEntry != null) {
+                                    navController.popBackStack()
+                                } else {
+                                    navController.navigate(AppScreens.HomeScreen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Volver",
+                                    tint = Color.White
+                                )
+                            }
                         }
                     }
                 )
@@ -141,6 +157,9 @@ fun AppNavigation() {
             }
             composable(route = AppScreens.OrdersScreen.route) {
                 OrdersScreen(navController)
+            }
+            composable(route = AppScreens.AdminScreen.route) {
+                AdminScreen(navController)
             }
         }
     }
