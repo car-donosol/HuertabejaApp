@@ -180,10 +180,10 @@ fun AdminScreen(
             product = selectedProduct!!,
             onDismiss = { showEditDialog = false },
             onConfirm = { title, price, priceOffer, image, description, stock, category, home ->
-                // Usar ID si está disponible, sino usar slug
-                val identifier = selectedProduct!!.id ?: selectedProduct!!.slug
+                // Usar slug del producto para actualizar
+                val slug = selectedProduct!!.slug
                 adminViewModel.updateProduct(
-                    slug = identifier,
+                    slug = slug,
                     title = title,
                     price = price,
                     priceOffer = priceOffer,
@@ -218,9 +218,9 @@ fun AdminScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // Usar ID si está disponible, sino usar slug
-                        val identifier = selectedProduct!!.id ?: selectedProduct!!.slug
-                        adminViewModel.deleteProduct(identifier)
+                        // Usar slug del producto para eliminar
+                        val slug = selectedProduct!!.slug
+                        adminViewModel.deleteProduct(slug)
                     }
                 ) {
                     Text("Eliminar", color = MaterialTheme.colorScheme.error)

@@ -7,6 +7,8 @@ import com.example.huertabeja.data.Product
 import com.example.huertabeja.data.api.RetrofitClient
 import com.example.huertabeja.data.model.CreateProductRequest
 import com.example.huertabeja.data.model.UpdateProductRequest
+import com.example.huertabeja.data.model.UpdateProductResponse
+import com.example.huertabeja.data.model.DeleteProductResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,31 +69,46 @@ class AdminProductViewModel : ViewModel() {
                     slug = slug
                 )
                 
-                Log.d("AdminProductViewModel", "Creating product: $title")
+                Log.d("AdminProductViewModel", "=== CREAR PRODUCTO ===")
+                Log.d("AdminProductViewModel", "Title: $title")
+                Log.d("AdminProductViewModel", "Price: $price")
+                Log.d("AdminProductViewModel", "Stock: $stock")
+                Log.d("AdminProductViewModel", "Slug: $slug")
+                Log.d("AdminProductViewModel", "Category: $category")
+                Log.d("AdminProductViewModel", "Request completo: $request")
                 
                 val response = productApiService.createProduct(request)
                 
+                Log.d("AdminProductViewModel", "=== RESPUESTA ===")
+                Log.d("AdminProductViewModel", "Response code: ${response.code()}")
+                Log.d("AdminProductViewModel", "Response message: ${response.message()}")
+                Log.d("AdminProductViewModel", "Response body: ${response.body()}")
+                Log.d("AdminProductViewModel", "Response raw: ${response.raw()}")
+                
                 if (response.isSuccessful) {
-                    val productResponse = response.body()
-                    if (productResponse?.success == true) {
+                    val product = response.body()
+                    if (product != null) {
                         _adminState.value = AdminState.Success("Producto creado exitosamente")
-                        _selectedProduct.value = productResponse.product
-                        Log.d("AdminProductViewModel", "Product created successfully")
+                        _selectedProduct.value = product
+                        Log.d("AdminProductViewModel", "Product created successfully: ${product.title}")
                     } else {
-                        val error = productResponse?.message ?: "Error al crear el producto"
+                        val error = "Respuesta vacía del servidor"
                         _adminState.value = AdminState.Error(error)
                         _errorMessage.value = error
                         Log.e("AdminProductViewModel", error)
                     }
                 } else {
+                    val errorBody = response.errorBody()?.string()
                     val error = when (response.code()) {
-                        405 -> "La API no permite crear productos. Contacta al administrador del servidor."
-                        403 -> "No tienes permisos para crear productos"
-                        else -> "Error ${response.code()}: ${response.message()}"
+                        405 -> "Error 405: La API no permite crear productos. Verifica la URL o contacta al backend."
+                        403 -> "Error 403: No tienes permisos para crear productos"
+                        400 -> "Error 400: Datos inválidos - $errorBody"
+                        else -> "Error ${response.code()}: ${response.message()} - $errorBody"
                     }
                     _adminState.value = AdminState.Error(error)
                     _errorMessage.value = error
                     Log.e("AdminProductViewModel", "Error creating product: ${response.code()} - ${response.message()}")
+                    Log.e("AdminProductViewModel", "Error body: $errorBody")
                 }
                 
             } catch (e: Exception) {
@@ -140,28 +157,33 @@ class AdminProductViewModel : ViewModel() {
                 
                 val response = productApiService.updateProduct(slug, request)
                 
+                Log.d("AdminProductViewModel", "Response code: ${response.code()}")
+                Log.d("AdminProductViewModel", "Response body: ${response.body()}")
+                
                 if (response.isSuccessful) {
-                    val productResponse = response.body()
-                    if (productResponse?.success == true) {
-                        _adminState.value = AdminState.Success("Producto actualizado exitosamente")
-                        _selectedProduct.value = productResponse.product
+                    val updateResponse = response.body()
+                    if (updateResponse?.success == true) {
+                        _adminState.value = AdminState.Success(updateResponse.message)
                         Log.d("AdminProductViewModel", "Product updated successfully")
                     } else {
-                        val error = productResponse?.message ?: "Error al actualizar el producto"
+                        val error = updateResponse?.message ?: "Respuesta vacía del servidor"
                         _adminState.value = AdminState.Error(error)
                         _errorMessage.value = error
                         Log.e("AdminProductViewModel", error)
                     }
                 } else {
+                    val errorBody = response.errorBody()?.string()
                     val error = when (response.code()) {
-                        405 -> "La API no permite actualizar productos. Contacta al administrador del servidor."
-                        403 -> "No tienes permisos para actualizar productos"
-                        404 -> "Producto no encontrado"
-                        else -> "Error ${response.code()}: ${response.message()}"
+                        405 -> "Error 405: La API no permite actualizar productos. Verifica la URL o contacta al backend."
+                        403 -> "Error 403: No tienes permisos para actualizar productos"
+                        404 -> "Error 404: Producto no encontrado"
+                        400 -> "Error 400: Datos inválidos - $errorBody"
+                        else -> "Error ${response.code()}: ${response.message()} - $errorBody"
                     }
                     _adminState.value = AdminState.Error(error)
                     _errorMessage.value = error
                     Log.e("AdminProductViewModel", "Error updating product: ${response.code()} - ${response.message()}")
+                    Log.e("AdminProductViewModel", "Error body: $errorBody")
                 }
                 
             } catch (e: Exception) {
@@ -189,28 +211,32 @@ class AdminProductViewModel : ViewModel() {
                 
                 val response = productApiService.deleteProduct(slug)
                 
+                Log.d("AdminProductViewModel", "Response code: ${response.code()}")
+                Log.d("AdminProductViewModel", "Response body: ${response.body()}")
+                
                 if (response.isSuccessful) {
-                    val productResponse = response.body()
-                    if (productResponse?.success == true) {
-                        _adminState.value = AdminState.Success("Producto eliminado exitosamente")
+                    val deleteResponse = response.body()
+                    if (deleteResponse?.success == true) {
+                        _adminState.value = AdminState.Success(deleteResponse.message)
                         _selectedProduct.value = null
                         Log.d("AdminProductViewModel", "Product deleted successfully")
                     } else {
-                        val error = productResponse?.message ?: "Error al eliminar el producto"
+                        val error = deleteResponse?.message ?: "Error al eliminar el producto"
                         _adminState.value = AdminState.Error(error)
                         _errorMessage.value = error
                         Log.e("AdminProductViewModel", error)
                     }
                 } else {
+                    val errorBody = response.errorBody()?.string()
                     val error = when (response.code()) {
-                        405 -> "La API no permite eliminar productos. Contacta al administrador del servidor."
-                        403 -> "No tienes permisos para eliminar productos"
-                        404 -> "Producto no encontrado"
-                        else -> "Error ${response.code()}: ${response.message()}"
+                        404 -> "Error 404: Producto no encontrado"
+                        400 -> "Error 400: Datos inválidos - $errorBody"
+                        else -> "Error ${response.code()}: ${response.message()} - $errorBody"
                     }
                     _adminState.value = AdminState.Error(error)
                     _errorMessage.value = error
                     Log.e("AdminProductViewModel", "Error deleting product: ${response.code()} - ${response.message()}")
+                    Log.e("AdminProductViewModel", "Error body: $errorBody")
                 }
                 
             } catch (e: Exception) {

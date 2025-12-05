@@ -5,16 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.huertabeja.data.api.RetrofitClient
 import com.example.huertabeja.data.model.CreateSaleRequest
+import com.example.huertabeja.data.model.UpdateSaleRequest
 import com.example.huertabeja.data.model.Sale
-import com.example.huertabeja.data.model.SaleItem
-import com.example.huertabeja.data.model.ShippingAddress
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel para manejar las operaciones de ventas
+ * ViewModel para manejar las operaciones de ventas/pedidos
  */
 class SalesViewModel : ViewModel() {
     
@@ -41,13 +40,13 @@ class SalesViewModel : ViewModel() {
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
     /**
-     * Registrar una nueva venta
+     * Crear un nuevo pedido
      */
     fun createSale(
-        userId: String,
-        items: List<SaleItem>,
-        paymentMethod: String? = null,
-        shippingAddress: ShippingAddress? = null
+        clienteId: String,
+        direccion: String,
+        total: Int,
+        status: String = "pendiente"
     ) {
         viewModelScope.launch {
             try {
@@ -55,32 +54,28 @@ class SalesViewModel : ViewModel() {
                 _salesState.value = SalesState.Loading
                 _errorMessage.value = null
                 
-                // Calcular el total
-                val total = items.sumOf { it.subtotal }
-                
                 val request = CreateSaleRequest(
-                    userId = userId,
-                    items = items,
+                    clienteId = clienteId,
+                    direccion = direccion,
                     total = total,
-                    paymentMethod = paymentMethod,
-                    shippingAddress = shippingAddress
+                    status = status
                 )
                 
-                Log.d("SalesViewModel", "Creating sale for user: $userId, total: $total")
+                Log.d("SalesViewModel", "Creating sale for cliente: $clienteId, total: $total")
                 
                 val response = salesApiService.createSale(request)
                 
                 if (response.isSuccessful) {
-                    val createSaleResponse = response.body()
-                    if (createSaleResponse?.success == true && createSaleResponse.sale != null) {
-                        _salesState.value = SalesState.Success("Venta registrada exitosamente")
-                        _selectedSale.value = createSaleResponse.sale
-                        Log.d("SalesViewModel", "Sale created successfully: ${createSaleResponse.sale.id}")
+                    val sale = response.body()
+                    if (sale != null) {
+                        _salesState.value = SalesState.Success("Pedido creado exitosamente")
+                        _selectedSale.value = sale
+                        Log.d("SalesViewModel", "Sale created successfully")
                     } else {
-                        val error = createSaleResponse?.message ?: "Error al crear la venta"
+                        val error = "Error al crear el pedido"
                         _salesState.value = SalesState.Error(error)
                         _errorMessage.value = error
-                        Log.e("SalesViewModel", "Error creating sale: $error")
+                        Log.e("SalesViewModel", error)
                     }
                 } else {
                     val error = "Error: ${response.code()} - ${response.message()}"
@@ -101,7 +96,7 @@ class SalesViewModel : ViewModel() {
     }
     
     /**
-     * Obtener todas las ventas
+     * Obtener todos los pedidos
      */
     fun getAllSales() {
         viewModelScope.launch {
@@ -115,13 +110,13 @@ class SalesViewModel : ViewModel() {
                 val response = salesApiService.getAllSales()
                 
                 if (response.isSuccessful) {
-                    val salesResponse = response.body()
-                    if (salesResponse?.success == true) {
-                        _sales.value = salesResponse.sales
-                        _salesState.value = SalesState.Success("Ventas cargadas exitosamente")
-                        Log.d("SalesViewModel", "Loaded ${salesResponse.sales.size} sales")
+                    val salesList = response.body()
+                    if (salesList != null) {
+                        _sales.value = salesList
+                        _salesState.value = SalesState.Success("Pedidos cargados exitosamente")
+                        Log.d("SalesViewModel", "Loaded ${salesList.size} sales")
                     } else {
-                        val error = "Error al cargar las ventas"
+                        val error = "Error al cargar los pedidos"
                         _salesState.value = SalesState.Error(error)
                         _errorMessage.value = error
                         Log.e("SalesViewModel", error)
@@ -145,27 +140,27 @@ class SalesViewModel : ViewModel() {
     }
     
     /**
-     * Obtener ventas de un usuario específico
+     * Obtener pedidos de un cliente específico
      */
-    fun getSalesByUserId(userId: String) {
+    fun getSalesByClienteId(clienteId: String) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 _salesState.value = SalesState.Loading
                 _errorMessage.value = null
                 
-                Log.d("SalesViewModel", "Fetching sales for user: $userId")
+                Log.d("SalesViewModel", "Fetching sales for cliente: $clienteId")
                 
-                val response = salesApiService.getSalesByUserId(userId)
+                val response = salesApiService.getSalesByClienteId(clienteId)
                 
                 if (response.isSuccessful) {
-                    val salesResponse = response.body()
-                    if (salesResponse?.success == true) {
-                        _sales.value = salesResponse.sales
-                        _salesState.value = SalesState.Success("Ventas cargadas exitosamente")
-                        Log.d("SalesViewModel", "Loaded ${salesResponse.sales.size} sales for user $userId")
+                    val salesList = response.body()
+                    if (salesList != null) {
+                        _sales.value = salesList
+                        _salesState.value = SalesState.Success("Pedidos cargados exitosamente")
+                        Log.d("SalesViewModel", "Loaded ${salesList.size} sales for cliente $clienteId")
                     } else {
-                        val error = "Error al cargar las ventas del usuario"
+                        val error = "Error al cargar los pedidos del cliente"
                         _salesState.value = SalesState.Error(error)
                         _errorMessage.value = error
                         Log.e("SalesViewModel", error)
@@ -174,14 +169,14 @@ class SalesViewModel : ViewModel() {
                     val error = "Error: ${response.code()} - ${response.message()}"
                     _salesState.value = SalesState.Error(error)
                     _errorMessage.value = error
-                    Log.e("SalesViewModel", "HTTP error fetching user sales: $error")
+                    Log.e("SalesViewModel", "HTTP error fetching cliente sales: $error")
                 }
                 
             } catch (e: Exception) {
                 val error = "Error de red: ${e.message}"
                 _salesState.value = SalesState.Error(error)
                 _errorMessage.value = error
-                Log.e("SalesViewModel", "Exception fetching user sales", e)
+                Log.e("SalesViewModel", "Exception fetching cliente sales", e)
             } finally {
                 _isLoading.value = false
             }
@@ -189,27 +184,27 @@ class SalesViewModel : ViewModel() {
     }
     
     /**
-     * Obtener una venta específica por ID
+     * Obtener un pedido específico por ID
      */
-    fun getSaleById(saleId: String) {
+    fun getSaleById(id: Int) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 _salesState.value = SalesState.Loading
                 _errorMessage.value = null
                 
-                Log.d("SalesViewModel", "Fetching sale: $saleId")
+                Log.d("SalesViewModel", "Fetching sale: $id")
                 
-                val response = salesApiService.getSaleById(saleId)
+                val response = salesApiService.getSaleById(id)
                 
                 if (response.isSuccessful) {
                     val sale = response.body()
                     if (sale != null) {
                         _selectedSale.value = sale
-                        _salesState.value = SalesState.Success("Venta cargada exitosamente")
-                        Log.d("SalesViewModel", "Loaded sale: $saleId")
+                        _salesState.value = SalesState.Success("Pedido cargado exitosamente")
+                        Log.d("SalesViewModel", "Loaded sale: $id")
                     } else {
-                        val error = "Venta no encontrada"
+                        val error = "Pedido no encontrado"
                         _salesState.value = SalesState.Error(error)
                         _errorMessage.value = error
                         Log.e("SalesViewModel", error)
@@ -226,6 +221,97 @@ class SalesViewModel : ViewModel() {
                 _salesState.value = SalesState.Error(error)
                 _errorMessage.value = error
                 Log.e("SalesViewModel", "Exception fetching sale", e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    /**
+     * Actualizar un pedido
+     */
+    fun updateSale(
+        id: Int,
+        status: String? = null,
+        direccion: String? = null,
+        total: Int? = null
+    ) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _salesState.value = SalesState.Loading
+                _errorMessage.value = null
+                
+                val request = UpdateSaleRequest(
+                    status = status,
+                    direccion = direccion,
+                    total = total
+                )
+                
+                Log.d("SalesViewModel", "Updating sale: $id")
+                
+                val response = salesApiService.updateSale(id, request)
+                
+                if (response.isSuccessful) {
+                    val sale = response.body()
+                    if (sale != null) {
+                        _salesState.value = SalesState.Success("Pedido actualizado exitosamente")
+                        _selectedSale.value = sale
+                        Log.d("SalesViewModel", "Sale updated successfully")
+                    } else {
+                        val error = "Error al actualizar el pedido"
+                        _salesState.value = SalesState.Error(error)
+                        _errorMessage.value = error
+                        Log.e("SalesViewModel", error)
+                    }
+                } else {
+                    val error = "Error: ${response.code()} - ${response.message()}"
+                    _salesState.value = SalesState.Error(error)
+                    _errorMessage.value = error
+                    Log.e("SalesViewModel", "HTTP error updating sale: $error")
+                }
+                
+            } catch (e: Exception) {
+                val error = "Error de red: ${e.message}"
+                _salesState.value = SalesState.Error(error)
+                _errorMessage.value = error
+                Log.e("SalesViewModel", "Exception updating sale", e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    /**
+     * Eliminar un pedido
+     */
+    fun deleteSale(id: Int) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _salesState.value = SalesState.Loading
+                _errorMessage.value = null
+                
+                Log.d("SalesViewModel", "Deleting sale: $id")
+                
+                val response = salesApiService.deleteSale(id)
+                
+                if (response.isSuccessful) {
+                    _salesState.value = SalesState.Success("Pedido eliminado exitosamente")
+                    _selectedSale.value = null
+                    Log.d("SalesViewModel", "Sale deleted successfully")
+                } else {
+                    val error = "Error: ${response.code()} - ${response.message()}"
+                    _salesState.value = SalesState.Error(error)
+                    _errorMessage.value = error
+                    Log.e("SalesViewModel", "HTTP error deleting sale: $error")
+                }
+                
+            } catch (e: Exception) {
+                val error = "Error de red: ${e.message}"
+                _salesState.value = SalesState.Error(error)
+                _errorMessage.value = error
+                Log.e("SalesViewModel", "Exception deleting sale", e)
             } finally {
                 _isLoading.value = false
             }
@@ -257,3 +343,4 @@ sealed class SalesState {
     data class Success(val message: String) : SalesState()
     data class Error(val message: String) : SalesState()
 }
+

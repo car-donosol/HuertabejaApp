@@ -76,3 +76,31 @@ data class ProductResponse(
     @SerializedName("product")
     val product: com.example.huertabeja.data.Product? = null
 )
+
+/**
+ * Response para actualizar producto (devuelve objeto wrapper)
+ */
+data class UpdateProductResponse(
+    @SerializedName("success")
+    val success: Boolean,
+    
+    @SerializedName("message")
+    val message: String,
+    
+    @SerializedName("product")
+    val product: com.example.huertabeja.data.Product? = null
+)
+
+/**
+ * Response para eliminar producto
+ */
+data class DeleteProductResponse(
+    @SerializedName("success")
+    val success: Boolean,
+    
+    @SerializedName("message")
+    val message: String,
+    
+    @SerializedName("deleted")
+    val deleted: String? = null  // JSON RAW del producto eliminado
+)

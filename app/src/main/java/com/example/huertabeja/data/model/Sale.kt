@@ -1,124 +1,52 @@
 package com.example.huertabeja.data.model
 
 import com.google.gson.annotations.SerializedName
-import java.util.Date
 
 /**
- * Modelo de datos para una venta
+ * Modelo de datos para un pedido (adaptado al backend)
+ * NOTA: El backend actualmente NO devuelve id ni created_at en las respuestas
  */
 data class Sale(
-    @SerializedName("_id")
-    val id: String? = null,
-    
-    @SerializedName("user_id")
-    val userId: String,
-    
-    @SerializedName("items")
-    val items: List<SaleItem>,
-    
-    @SerializedName("total")
-    val total: Double,
+    @SerializedName("cliente_id")
+    val clienteId: String,
     
     @SerializedName("status")
-    val status: String = "PENDING",
+    val status: String = "pendiente",
     
-    @SerializedName("payment_method")
-    val paymentMethod: String? = null,
-    
-    @SerializedName("shipping_address")
-    val shippingAddress: ShippingAddress? = null,
-    
-    @SerializedName("created_at")
-    val createdAt: String? = null,
-    
-    @SerializedName("updated_at")
-    val updatedAt: String? = null
-)
-
-/**
- * Item individual de una venta
- */
-data class SaleItem(
-    @SerializedName("product_id")
-    val productId: String,
-    
-    @SerializedName("product_name")
-    val productName: String,
-    
-    @SerializedName("quantity")
-    val quantity: Int,
-    
-    @SerializedName("price")
-    val price: Double,
-    
-    @SerializedName("subtotal")
-    val subtotal: Double
-)
-
-/**
- * Dirección de envío
- */
-data class ShippingAddress(
-    @SerializedName("street")
-    val street: String,
-    
-    @SerializedName("city")
-    val city: String,
-    
-    @SerializedName("state")
-    val state: String? = null,
-    
-    @SerializedName("postal_code")
-    val postalCode: String,
-    
-    @SerializedName("country")
-    val country: String = "México"
-)
-
-/**
- * Request para crear una nueva venta
- */
-data class CreateSaleRequest(
-    @SerializedName("user_id")
-    val userId: String,
-    
-    @SerializedName("items")
-    val items: List<SaleItem>,
+    @SerializedName("direccion")
+    val direccion: String,
     
     @SerializedName("total")
-    val total: Double,
-    
-    @SerializedName("payment_method")
-    val paymentMethod: String? = null,
-    
-    @SerializedName("shipping_address")
-    val shippingAddress: ShippingAddress? = null
+    val total: Int
 )
 
 /**
- * Response al crear una venta
+ * Request para crear un nuevo pedido
  */
-data class CreateSaleResponse(
-    @SerializedName("success")
-    val success: Boolean,
+data class CreateSaleRequest(
+    @SerializedName("cliente_id")
+    val clienteId: String,
     
-    @SerializedName("message")
-    val message: String,
+    @SerializedName("status")
+    val status: String = "pendiente",
     
-    @SerializedName("sale")
-    val sale: Sale? = null
+    @SerializedName("direccion")
+    val direccion: String,
+    
+    @SerializedName("total")
+    val total: Int
 )
 
 /**
- * Response al consultar ventas
+ * Request para actualizar un pedido
  */
-data class SalesResponse(
-    @SerializedName("success")
-    val success: Boolean,
+data class UpdateSaleRequest(
+    @SerializedName("status")
+    val status: String? = null,
     
-    @SerializedName("sales")
-    val sales: List<Sale>,
+    @SerializedName("direccion")
+    val direccion: String? = null,
     
-    @SerializedName("total_count")
-    val totalCount: Int? = null
+    @SerializedName("total")
+    val total: Int? = null
 )
