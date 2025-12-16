@@ -37,8 +37,8 @@ class PedidosRepository {
             try {
                 val response = apiService.obtenerPedidosPorUsuario(usuarioId, "Bearer $token")
                 if (response.isSuccessful && response.body() != null) {
-                    val pedidosResponse = response.body()!!
-                    Result.success(pedidosResponse.pedidos)
+                    // El endpoint devuelve List<Pedido> directamente
+                    Result.success(response.body()!!)
                 } else {
                     Result.failure(Exception("Error al obtener pedidos: ${response.code()}"))
                 }

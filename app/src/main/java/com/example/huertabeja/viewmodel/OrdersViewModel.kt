@@ -46,36 +46,35 @@ class OrdersViewModel(application: Application) : AndroidViewModel(application) 
                     return@launch
                 }
                 
-                val response = if (userId != null) {
-                    pedidosApiService.obtenerPedidosPorUsuario(userId, "Bearer $token")
+                val pedidos: List<Pedido> = if (userId != null) {
+                    // Endpoint por usuario devuelve List<Pedido> directamente
+                    val response = pedidosApiService.obtenerPedidosPorUsuario(userId, "Bearer $token")
+                    if (response.isSuccessful) {
+                        response.body() ?: emptyList()
+                    } else {
+                        handleError(response.code())
+                        return@launch
+                    }
                 } else {
-                    pedidosApiService.obtenerTodosPedidos("Bearer $token")
+                    // Endpoint de todos devuelve PedidosResponse
+                    val response = pedidosApiService.obtenerTodosPedidos("Bearer $token")
+                    if (response.isSuccessful) {
+                        response.body()?.pedidos ?: emptyList()
+                    } else {
+                        handleError(response.code())
+                        return@launch
+                    }
                 }
 
-                if (response.isSuccessful) {
-                    val pedidosResponse = response.body()
-                    val pedidos = pedidosResponse?.pedidos ?: emptyList()
-                    // Convertir Pedido (backend Railway) a Order (UI app)
-                    val orders = pedidos.map { pedido -> pedidoToOrder(pedido) }
-                    
-                    _uiState.value = _uiState.value.copy(
-                        orders = orders,
-                        isLoading = false,
-                        error = null
-                    )
-                    Log.d("OrdersViewModel", "Loaded ${orders.size} orders")
-                } else {
-                    val error = if (response.code() == 500) {
-                        "El servicio de pedidos está temporalmente fuera de servicio. Intenta más tarde."
-                    } else {
-                        "Error al cargar los pedidos: ${response.code()}"
-                    }
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = error
-                    )
-                    Log.e("OrdersViewModel", error)
-                }
+                // Convertir Pedido (backend Railway) a Order (UI app)
+                val orders = pedidos.map { pedido -> pedidoToOrder(pedido) }
+                
+                _uiState.value = _uiState.value.copy(
+                    orders = orders,
+                    isLoading = false,
+                    error = null
+                )
+                Log.d("OrdersViewModel", "Loaded ${orders.size} orders")
             } catch (e: Exception) {
                 val error = "Error de conexión: ${e.message}"
                 _uiState.value = _uiState.value.copy(
@@ -85,6 +84,19 @@ class OrdersViewModel(application: Application) : AndroidViewModel(application) 
                 Log.e("OrdersViewModel", "Exception loading orders", e)
             }
         }
+    }
+    
+    private fun handleError(code: Int) {
+        val error = if (code == 500) {
+            "El servicio de pedidos está temporalmente fuera de servicio. Intenta más tarde."
+        } else {
+            "Error al cargar los pedidos: $code"
+        }
+        _uiState.value = _uiState.value.copy(
+            isLoading = false,
+            error = error
+        )
+        Log.e("OrdersViewModel", error)
     }
 
     private fun pedidoToOrder(pedido: Pedido): Order {

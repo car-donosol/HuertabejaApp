@@ -16,7 +16,7 @@ interface PedidosApiService {
     suspend fun obtenerPedidosPorUsuario(
         @Path("usuarioId") usuarioId: String,
         @Header("Authorization") token: String
-    ): Response<PedidosResponse>
+    ): Response<List<Pedido>>
     
     @GET("api/pedidos/{id}")
     suspend fun obtenerPedidoPorId(
