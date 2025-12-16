@@ -1,6 +1,7 @@
 package com.example.huertabeja.data.remote
 
 import com.example.huertabeja.data.model.*
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -46,4 +47,15 @@ interface ProductosApiService {
     suspend fun buscarProductos(
         @Query("q") query: String
     ): Response<List<Producto>>
+    
+    @Multipart
+    @POST("api/productos/upload")
+    suspend fun subirImagen(
+        @Part imagen: MultipartBody.Part
+    ): Response<ImageUploadResponse>
+    
+    @DELETE("api/productos/upload/{public_id}")
+    suspend fun eliminarImagen(
+        @Path("public_id") publicId: String
+    ): Response<ImageDeleteResponse>
 }

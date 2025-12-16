@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.huertabeja.data.Product
+import com.example.huertabeja.navigation.AppScreens
 import com.example.huertabeja.viewmodel.AdminProductViewModel
 import com.example.huertabeja.viewmodel.AdminState
 import com.example.huertabeja.viewmodel.ProductsViewModel
@@ -142,15 +143,32 @@ fun AdminScreen(
             }
         }
         
-        // Botón flotante para agregar
-        FloatingActionButton(
-            onClick = { showAddDialog = true },
-            containerColor = Color(0xFF4CAF50),
+        // Botones flotantes
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(Icons.Default.Add, "Agregar producto", tint = Color.White)
+            // Botón para subir imágenes
+            SmallFloatingActionButton(
+                onClick = { navController.navigate(AppScreens.AddProductImageScreen.route) },
+                containerColor = Color(0xFF1976D2)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Subir imágenes",
+                    tint = Color.White
+                )
+            }
+            
+            // Botón para agregar producto
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = Color(0xFF388E3C)
+            ) {
+                Icon(Icons.Default.Add, "Agregar producto", tint = Color.White)
+            }
         }
     }
     

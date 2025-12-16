@@ -70,6 +70,15 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
     
+    // Coil para cargar imágenes (necesario para ImagePicker)
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    
+    // Activity Result API para Image Picker
+    implementation("androidx.activity:activity-compose:1.8.2")
+    
+    // Chrome Custom Tabs para Mercado Pago
+    implementation("androidx.browser:browser:1.7.0")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

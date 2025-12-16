@@ -6,8 +6,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -22,12 +25,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.huertabeja.screens.*
 import com.example.huertabeja.viewmodel.CartViewModel
+import com.example.huertabeja.ui.viewmodel.MercadoPagoViewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import android.app.Application
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    paymentResult: String? = null,
+    onPaymentResultHandled: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val cartViewModel: CartViewModel = viewModel(
@@ -41,6 +49,17 @@ fun AppNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
+    
+    // Estado para manejar el resultado del pago de Mercado Pago
+    val mercadoPagoViewModel: MercadoPagoViewModel = viewModel()
+    
+    // Manejar el resultado del pago cuando viene de Deep Link
+    LaunchedEffect(paymentResult) {
+        paymentResult?.let { result ->
+            mercadoPagoViewModel.handlePaymentResult(result)
+            onPaymentResultHandled()
+        }
+    }
 
     val bottomNavItems = listOf(
         BottomNavItem.Home,
@@ -163,6 +182,7 @@ fun AppNavigation() {
                     navController = navController,
                     totalAmount = cartUiState.totalPrice,
                     cartUiState = cartUiState,
+                    mercadoPagoViewModel = mercadoPagoViewModel,
                     onCheckout = { calle, ciudad, estado, codigoPostal, pais, metodoPago ->
                         val direccionCompleta = com.example.huertabeja.data.model.Direccion(
                             calle = calle,
@@ -186,6 +206,9 @@ fun AppNavigation() {
             }
             composable(route = AppScreens.AdminScreen.route) {
                 AdminScreen(navController)
+            }
+            composable(route = AppScreens.AddProductImageScreen.route) {
+                AddProductImageScreen(navController)
             }
         }
     }

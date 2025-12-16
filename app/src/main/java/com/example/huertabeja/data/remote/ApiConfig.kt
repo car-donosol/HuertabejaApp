@@ -22,11 +22,13 @@ object ApiConfig {
     private const val BASE_URL_USUARIOS_REMOTE = "https://usuarios-service-production-7145.up.railway.app/"
     private const val BASE_URL_PRODUCTOS_REMOTE = "https://productos-service-production.up.railway.app/"
     private const val BASE_URL_PEDIDOS_REMOTE = "https://pedidos-service-production.up.railway.app/"
+    private const val BASE_URL_PAGOS_REMOTE = "https://pagos-service-production.up.railway.app/"  // Mercado Pago
     
     // Selección automática según configuración
     private val BASE_URL_USUARIOS = if (USE_LOCAL_BACKEND) BASE_URL_USUARIOS_LOCAL else BASE_URL_USUARIOS_REMOTE
     private val BASE_URL_PRODUCTOS = if (USE_LOCAL_BACKEND) BASE_URL_PRODUCTOS_LOCAL else BASE_URL_PRODUCTOS_REMOTE
     private val BASE_URL_PEDIDOS = if (USE_LOCAL_BACKEND) BASE_URL_PEDIDOS_LOCAL else BASE_URL_PEDIDOS_REMOTE
+    private val BASE_URL_PAGOS = BASE_URL_PAGOS_REMOTE  // Siempre Railway para pagos
     
     private fun getOkHttpClient(): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -66,5 +68,14 @@ object ApiConfig {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(PedidosApiService::class.java)
+    }
+    
+    fun getPagosService(): PagosApiService {
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL_PAGOS)
+            .client(getOkHttpClient())
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(PagosApiService::class.java)
     }
 }
