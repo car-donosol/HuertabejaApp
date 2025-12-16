@@ -1,16 +1,22 @@
 package com.example.huertabeja.viewmodel
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.huertabeja.data.Order
+import com.example.huertabeja.data.OrderItem
 import com.example.huertabeja.data.OrderStatus
-import com.example.huertabeja.data.api.RetrofitClient
-import com.example.huertabeja.data.model.Sale
+import com.example.huertabeja.data.Product
+import com.example.huertabeja.data.remote.ApiConfig
+import com.example.huertabeja.data.model.Pedido
+import com.example.huertabeja.utils.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class OrdersUiState(
     val orders: List<Order> = emptyList(),
@@ -18,11 +24,12 @@ data class OrdersUiState(
     val error: String? = null
 )
 
-class OrdersViewModel : ViewModel() {
+class OrdersViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(OrdersUiState())
     val uiState: StateFlow<OrdersUiState> = _uiState.asStateFlow()
 
-    private val salesApiService = RetrofitClient.salesService
+    private val sessionManager = SessionManager(application)
+    private val pedidosApiService = ApiConfig.getPedidosService()
 
     fun loadOrders(userId: String?) {
         viewModelScope.launch {
@@ -30,16 +37,26 @@ class OrdersViewModel : ViewModel() {
             try {
                 Log.d("OrdersViewModel", "Loading orders for user: $userId")
                 
+                val token = sessionManager.getAuthToken()
+                if (token.isNullOrBlank()) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "No hay sesión activa"
+                    )
+                    return@launch
+                }
+                
                 val response = if (userId != null) {
-                    salesApiService.getSalesByClienteId(userId)
+                    pedidosApiService.obtenerPedidosPorUsuario(userId, "Bearer $token")
                 } else {
-                    salesApiService.getAllSales()
+                    pedidosApiService.obtenerTodosPedidos("Bearer $token")
                 }
 
                 if (response.isSuccessful) {
-                    val sales = response.body() ?: emptyList()
-                    // Convertir Sales a Orders (adaptación temporal)
-                    val orders = sales.map { sale -> saleToOrder(sale) }
+                    val pedidosResponse = response.body()
+                    val pedidos = pedidosResponse?.pedidos ?: emptyList()
+                    // Convertir Pedido (backend Railway) a Order (UI app)
+                    val orders = pedidos.map { pedido -> pedidoToOrder(pedido) }
                     
                     _uiState.value = _uiState.value.copy(
                         orders = orders,
@@ -70,23 +87,53 @@ class OrdersViewModel : ViewModel() {
         }
     }
 
-    private fun saleToOrder(sale: Sale): Order {
-        // Convertir Sale (backend) a Order (UI)
-        val status = when (sale.status.lowercase()) {
+    private fun pedidoToOrder(pedido: Pedido): Order {
+        // Convertir Pedido (backend Railway) a Order (UI app)
+        val status = when (pedido.estado.lowercase()) {
             "pendiente", "pending" -> OrderStatus.PENDING
-            "procesando", "processing" -> OrderStatus.PROCESSING
+            "procesando", "processing", "en proceso" -> OrderStatus.PROCESSING
             "enviado", "shipped" -> OrderStatus.SHIPPED
             "entregado", "delivered" -> OrderStatus.DELIVERED
             "cancelado", "cancelled" -> OrderStatus.CANCELLED
-            "paid", "pagado" -> OrderStatus.DELIVERED
             else -> OrderStatus.PENDING
         }
         
+        // Convertir productos del pedido a OrderItems
+        val items = pedido.productos.map { productoPedido ->
+            val precioInt = productoPedido.precio.toInt()
+            OrderItem(
+                product = Product(
+                    id = productoPedido.productoId,
+                    title = productoPedido.nombre,
+                    price = precioInt,
+                    price_offer = precioInt,
+                    image = "",
+                    description = "",
+                    rating = null,
+                    stock = 0,
+                    category = "",
+                    home = false,
+                    slug = productoPedido.productoId
+                ),
+                quantity = productoPedido.cantidad,
+                price = productoPedido.precio
+            )
+        }
+        
+        // Parsear fecha del pedido
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        dateFormat.timeZone = TimeZone.getTimeZone("UTC")
+        val date = try {
+            dateFormat.parse(pedido.fechaPedido) ?: Date()
+        } catch (e: Exception) {
+            Date()
+        }
+        
         return Order(
-            id = sale.clienteId, // Usamos clienteId como id temporal
-            date = java.util.Date(), // No tenemos fecha en el backend actual
-            items = emptyList(), // El backend no tiene items
-            total = sale.total.toDouble(),
+            id = pedido.id,
+            date = date,
+            items = items,
+            total = pedido.total,
             status = status
         )
     }

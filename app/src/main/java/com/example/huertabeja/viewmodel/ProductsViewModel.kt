@@ -3,7 +3,8 @@ package com.example.huertabeja.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.huertabeja.data.Product
-import com.example.huertabeja.data.api.RetrofitClient
+import com.example.huertabeja.data.remote.ApiConfig
+import com.example.huertabeja.data.model.Producto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +20,7 @@ class ProductsViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ProductsUiState())
     val uiState: StateFlow<ProductsUiState> = _uiState.asStateFlow()
 
-    private val productApiService = RetrofitClient.productService
+    private val productApiService = ApiConfig.getProductosService()
 
     init {
         loadProducts()
@@ -29,10 +30,31 @@ class ProductsViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = productApiService.getAllProducts()
+                // Railway backend devuelve ProductosResponse, no List<Product> directamente
+                val response = productApiService.obtenerProductos(
+                    pagina = 1,
+                    limite = 100, // Obtener muchos productos para mostrar
+                    disponible = true
+                )
 
                 if (response.isSuccessful) {
-                    val products = response.body() ?: emptyList()
+                    val productosResponse = response.body()
+                    // Convertir Producto (Railway) a Product (app)
+                    val products = productosResponse?.productos?.map { producto ->
+                        Product(
+                            id = producto.id,
+                            slug = producto.id, // Usar ID como slug
+                            title = producto.nombre,
+                            price = producto.precio.toInt(),
+                            price_offer = (producto.precio * (1 - producto.descuento / 100.0)).toInt(),
+                            image = producto.imagenes?.firstOrNull() ?: "",
+                            description = producto.descripcion,
+                            stock = producto.stock,
+                            category = producto.categoria,
+                            home = producto.disponible
+                        )
+                    } ?: emptyList()
+                    
                     _uiState.value = _uiState.value.copy(
                         products = products,
                         isLoading = false,

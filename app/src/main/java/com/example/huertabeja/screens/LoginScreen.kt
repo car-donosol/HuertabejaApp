@@ -63,11 +63,11 @@ fun LoginScreen(
     LaunchedEffect(uiState) {
         when (val state = uiState) {
             is LoginUiState.Success -> {
-                sessionManager.saveUser(state.user)
+                sessionManager.saveUsuario(state.usuario, state.token)
                 
                 Toast.makeText(
                     context,
-                    "Bienvenido, ${state.user.pnombre}!",
+                    "Bienvenido, ${state.usuario.nombre}!",
                     Toast.LENGTH_SHORT
                 ).show()
                 

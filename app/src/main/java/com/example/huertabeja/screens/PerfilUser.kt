@@ -1,15 +1,21 @@
 package com.example.huertabeja.screens
 
 import android.widget.Toast
+import android.app.Application
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.example.huertabeja.R
@@ -41,17 +49,25 @@ import java.util.Locale
 
 @Composable
 fun PerfilScreen(
-    navController: NavController,
-    viewModel: PerfilViewModel = viewModel()
+    navController: NavController
 ) {
     val context = LocalContext.current
+    val viewModel: PerfilViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer {
+                PerfilViewModel(context.applicationContext as Application)
+            }
+        }
+    )
     val sessionManager = remember { SessionManager(context) }
     val localUser = sessionManager.getUser()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    // Si no hay usuario en sesión, redirigir al login
-    LaunchedEffect(localUser) {
-        if (localUser == null) {
+    // Verificar sesión activa
+    val hasSession = sessionManager.getAuthToken() != null
+    
+    LaunchedEffect(hasSession) {
+        if (!hasSession) {
             navController.navigate(AppScreens.LoginScreen.route) {
                 popUpTo(navController.graph.findStartDestination().id) {
                     inclusive = true
@@ -59,8 +75,8 @@ fun PerfilScreen(
                 launchSingleTop = true
             }
         } else {
-            // Cargar datos del usuario desde la API
-            viewModel.loadUserProfile(localUser.id ?: "")
+            // Cargar datos del usuario desde la API (el ID se extrae del JWT)
+            viewModel.loadUserProfile()
         }
     }
     
@@ -166,15 +182,17 @@ fun PerfilScreen(
                     modifier = Modifier
                         .size(80.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFC4BEB0))
+                        .background(Color(0xFF8DA356))
                         .clickable {
                             navController.navigate(AppScreens.OrdersScreen.route)
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "📦",
-                        fontSize = 32.sp,
+                    Icon(
+                        imageVector = Icons.Default.ShoppingBag,
+                        contentDescription = "Mis pedidos",
+                        tint = Color.White,
+                        modifier = Modifier.size(36.dp)
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -201,9 +219,11 @@ fun PerfilScreen(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "⚙️",
-                            fontSize = 32.sp,
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Admin",
+                            tint = Color.White,
+                            modifier = Modifier.size(36.dp)
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -234,6 +254,13 @@ fun PerfilScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 32.dp)
         ) {
+            Icon(
+                imageVector = Icons.Default.ExitToApp,
+                contentDescription = "Cerrar sesión",
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text("Cerrar Sesión", color = Color.White)
         }
         Spacer(modifier = Modifier.height(32.dp))

@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -21,12 +22,21 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.huertabeja.screens.*
 import com.example.huertabeja.viewmodel.CartViewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val cartViewModel: CartViewModel = viewModel()
+    val context = LocalContext.current
+    val cartViewModel: CartViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer {
+                CartViewModel(context.applicationContext as android.app.Application)
+            }
+        }
+    )
     val cartUiState by cartViewModel.uiState.collectAsState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -152,7 +162,23 @@ fun AppNavigation() {
                 PaymentScreen(
                     navController = navController,
                     totalAmount = cartUiState.totalPrice,
-                    onCheckout = { cartViewModel.clearCart() }
+                    cartUiState = cartUiState,
+                    onCheckout = { calle, ciudad, estado, codigoPostal, pais, metodoPago ->
+                        val direccionCompleta = com.example.huertabeja.data.model.Direccion(
+                            calle = calle,
+                            ciudad = ciudad,
+                            estado = estado,
+                            codigoPostal = codigoPostal,
+                            pais = pais
+                        )
+                        cartViewModel.createOrder(direccionCompleta, metodoPago)
+                    },
+                    onOrderSuccess = {
+                        cartViewModel.resetOrderState()
+                        navController.navigate(AppScreens.OrdersScreen.route) {
+                            popUpTo(AppScreens.HomeScreen.route)
+                        }
+                    }
                 )
             }
             composable(route = AppScreens.OrdersScreen.route) {

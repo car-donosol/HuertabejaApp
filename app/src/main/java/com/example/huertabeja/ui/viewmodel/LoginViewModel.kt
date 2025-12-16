@@ -2,9 +2,9 @@ package com.example.huertabeja.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.huertabeja.data.api.RetrofitClient
+import com.example.huertabeja.data.remote.ApiConfig
 import com.example.huertabeja.data.model.LoginRequest
-import com.example.huertabeja.data.model.User
+import com.example.huertabeja.data.model.Usuario
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 sealed class LoginUiState {
     object Idle : LoginUiState()
     object Loading : LoginUiState()
-    data class Success(val user: User) : LoginUiState()
+    data class Success(val usuario: Usuario, val token: String) : LoginUiState()
     data class Error(val message: String) : LoginUiState()
 }
 
@@ -26,18 +26,29 @@ class LoginViewModel : ViewModel() {
             try {
                 _uiState.value = LoginUiState.Loading
                 
-                val response = RetrofitClient.apiService.login(
+                val response = ApiConfig.getUsuariosService().loginUsuario(
                     LoginRequest(email, password)
                 )
                 
                 if (response.isSuccessful) {
                     val loginResponse = response.body()
-                    if (loginResponse?.success == true && loginResponse.user != null) {
-                        _uiState.value = LoginUiState.Success(loginResponse.user)
-                    } else {
-                        _uiState.value = LoginUiState.Error(
-                            loginResponse?.message ?: "Credenciales incorrectas"
+                    if (loginResponse != null) {
+                        // Convertir LoginResponse a Usuario
+                        val usuario = Usuario(
+                            id = loginResponse.id,
+                            nombre = loginResponse.nombre,
+                            apellido = loginResponse.apellido,
+                            email = loginResponse.email,
+                            telefono = loginResponse.telefono,
+                            direccion = loginResponse.direccion,
+                            rol = loginResponse.rol,
+                            token = loginResponse.token,
+                            createdAt = null,
+                            updatedAt = null
                         )
+                        _uiState.value = LoginUiState.Success(usuario, loginResponse.token)
+                    } else {
+                        _uiState.value = LoginUiState.Error("Error al procesar la respuesta del servidor")
                     }
                 } else {
                     val errorMessage = when (response.code()) {

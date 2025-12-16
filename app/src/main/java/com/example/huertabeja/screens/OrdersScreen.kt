@@ -156,14 +156,14 @@ fun OrderCard(order: Order, clpFormat: NumberFormat) {
             ) {
                 Column {
                     Text(
-                        text = "Pedido #${order.id}",
-                        fontSize = 18.sp,
+                        text = "Pedido #${order.id.take(8)}",
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF424F37)
                     )
                     Text(
                         text = dateFormat.format(order.date),
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         color = Color.Gray
                     )
                 }

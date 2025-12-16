@@ -11,6 +11,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -299,9 +302,9 @@ private fun CategoriesSection(
     onCategorySelected: (String) -> Unit
 ) {
     val categories = listOf(
-        CategoryData("interior", "🏠"),
-        CategoryData("exterior", "🌳"),
-        CategoryData("Todas", "🛒")
+        CategoryData("Todas", "Category"),
+        CategoryData("Interior", "Home"),
+        CategoryData("Exterior", "Park")
     )
 
     LazyRow(
@@ -322,6 +325,13 @@ private fun CategoriesSection(
 private fun CategoryCard(category: CategoryData, isSelected: Boolean, onClick: () -> Unit) {
     val backgroundColor = if (isSelected) Color(0xFF8E9B6B) else Color.White
     val textColor = if (isSelected) Color.White else Color(0xFF3C4522)
+    
+    val icon = when(category.emoji) {
+        "Home" -> Icons.Default.Home
+        "Park" -> Icons.Default.Park
+        "Category" -> Icons.Default.Category
+        else -> Icons.Default.Category
+    }
 
     Card(
         modifier = Modifier
@@ -337,9 +347,11 @@ private fun CategoryCard(category: CategoryData, isSelected: Boolean, onClick: (
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = category.emoji,
-                fontSize = 36.sp
+            Icon(
+                imageVector = icon,
+                contentDescription = category.name,
+                tint = textColor,
+                modifier = Modifier.size(36.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(

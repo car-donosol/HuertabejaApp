@@ -180,18 +180,21 @@ fun AdminScreen(
             product = selectedProduct!!,
             onDismiss = { showEditDialog = false },
             onConfirm = { title, price, priceOffer, image, description, stock, category, home ->
-                // Usar slug del producto para actualizar
-                val slug = selectedProduct!!.slug
+                // Usar ID del producto para actualizar en Railway backend
+                val productoId = selectedProduct!!.id ?: selectedProduct!!.slug
                 adminViewModel.updateProduct(
-                    slug = slug,
-                    title = title,
-                    price = price,
-                    priceOffer = priceOffer,
-                    image = image,
-                    description = description,
+                    productoId = productoId,
+                    nombre = title,
+                    precio = price?.toDouble(),
+                    descripcion = description,
                     stock = stock,
-                    category = category,
-                    home = home
+                    categoria = category,
+                    imagenes = if (!image.isNullOrBlank()) listOf(image) else null,
+                    marca = null,
+                    descuento = if (priceOffer != null && price != null && priceOffer < price) {
+                        ((price - priceOffer) * 100 / price)
+                    } else null,
+                    disponible = home
                 )
             }
         )
@@ -218,9 +221,9 @@ fun AdminScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // Usar slug del producto para eliminar
-                        val slug = selectedProduct!!.slug
-                        adminViewModel.deleteProduct(slug)
+                        // Usar ID del producto para eliminar en Railway backend
+                        val productoId = selectedProduct!!.id ?: selectedProduct!!.slug
+                        adminViewModel.deleteProduct(productoId)
                     }
                 ) {
                     Text("Eliminar", color = MaterialTheme.colorScheme.error)

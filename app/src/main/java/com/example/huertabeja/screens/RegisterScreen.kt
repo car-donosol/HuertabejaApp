@@ -44,7 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.platform.LocalContext
 import com.example.huertabeja.R
+import com.example.huertabeja.utils.SessionManager
 import com.example.huertabeja.viewmodel.RegisterState
 import com.example.huertabeja.viewmodel.RegisterViewModel
 
@@ -53,6 +55,8 @@ fun RegisterScreen(
     navController: NavController,
     viewModel: RegisterViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
     var run by remember { mutableStateOf("") }
     var dv by remember { mutableStateOf("") }
     var nombres by remember { mutableStateOf("") }
@@ -78,14 +82,16 @@ fun RegisterScreen(
     
     // Observe register state
     LaunchedEffect(registerState) {
-        when (registerState) {
+        when (val state = registerState) {
             is RegisterState.Success -> {
-                dialogMessage = (registerState as RegisterState.Success).message
+                // Guardar el token automáticamente
+                sessionManager.saveAuthToken(state.token)
+                dialogMessage = state.message
                 isSuccess = true
                 showDialog = true
             }
             is RegisterState.Error -> {
-                dialogMessage = (registerState as RegisterState.Error).message
+                dialogMessage = state.message
                 isSuccess = false
                 showDialog = true
             }

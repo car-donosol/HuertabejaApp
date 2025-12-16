@@ -1,14 +1,14 @@
 package com.example.huertabeja.viewmodel
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.huertabeja.data.Product
-import com.example.huertabeja.data.api.RetrofitClient
-import com.example.huertabeja.data.model.CreateProductRequest
-import com.example.huertabeja.data.model.UpdateProductRequest
-import com.example.huertabeja.data.model.UpdateProductResponse
-import com.example.huertabeja.data.model.DeleteProductResponse
+import com.example.huertabeja.data.remote.ApiConfig
+import com.example.huertabeja.data.model.CrearProductoRequest
+import com.example.huertabeja.data.model.ActualizarProductoRequest
+import com.example.huertabeja.utils.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,10 +16,24 @@ import kotlinx.coroutines.launch
 
 /**
  * ViewModel para operaciones de administración de productos
+ * NOTA: Las categorías válidas en Railway son:
+ * Electrónica, Ropa, Alimentos, Hogar, Deportes, Libros, Juguetes, Otros
  */
-class AdminProductViewModel : ViewModel() {
+class AdminProductViewModel(application: Application) : AndroidViewModel(application) {
     
-    private val productApiService = RetrofitClient.productService
+    private val sessionManager = SessionManager(application)
+    
+    private val productApiService = ApiConfig.getProductosService()
+    
+    // Mapeo de categorías de la app a categorías del backend
+    private fun mapCategory(appCategory: String): String {
+        return when(appCategory.lowercase()) {
+            "interior", "plantas" -> "Hogar"
+            "exterior" -> "Hogar"
+            "decoración", "decoracion" -> "Hogar"
+            else -> "Otros"
+        }
+    }
     
     // Estado de la operación administrativa
     private val _adminState = MutableStateFlow<AdminState>(AdminState.Idle)
@@ -49,7 +63,8 @@ class AdminProductViewModel : ViewModel() {
         stock: Int,
         category: String,
         home: Boolean = false,
-        slug: String
+        slug: String,
+        token: String? = null
     ) {
         viewModelScope.launch {
             try {
@@ -57,27 +72,30 @@ class AdminProductViewModel : ViewModel() {
                 _adminState.value = AdminState.Loading
                 _errorMessage.value = null
                 
-                val request = CreateProductRequest(
-                    title = title,
-                    price = price,
-                    priceOffer = priceOffer,
-                    image = image,
-                    description = description,
+                val mappedCategory = mapCategory(category)
+                
+                val request = CrearProductoRequest(
+                    nombre = title,
+                    descripcion = description,
+                    precio = price.toDouble(),
+                    categoria = mappedCategory,
                     stock = stock,
-                    category = category,
-                    home = home,
-                    slug = slug
+                    imagenes = listOf(image),
+                    marca = null,
+                    descuento = priceOffer,
+                    disponible = true
                 )
                 
-                Log.d("AdminProductViewModel", "=== CREAR PRODUCTO ===")
-                Log.d("AdminProductViewModel", "Title: $title")
-                Log.d("AdminProductViewModel", "Price: $price")
+                Log.d("AdminProductViewModel", "=== CREAR PRODUCTO (Railway) ===")
+                Log.d("AdminProductViewModel", "Nombre: $title")
+                Log.d("AdminProductViewModel", "Precio: $price")
                 Log.d("AdminProductViewModel", "Stock: $stock")
-                Log.d("AdminProductViewModel", "Slug: $slug")
-                Log.d("AdminProductViewModel", "Category: $category")
+                Log.d("AdminProductViewModel", "Categoría original: $category")
+                Log.d("AdminProductViewModel", "Categoría mapeada: $mappedCategory")
                 Log.d("AdminProductViewModel", "Request completo: $request")
                 
-                val response = productApiService.createProduct(request)
+                val authToken = token ?: ""
+                val response = productApiService.crearProducto("Bearer $authToken", request)
                 
                 Log.d("AdminProductViewModel", "=== RESPUESTA ===")
                 Log.d("AdminProductViewModel", "Response code: ${response.code()}")
@@ -86,11 +104,11 @@ class AdminProductViewModel : ViewModel() {
                 Log.d("AdminProductViewModel", "Response raw: ${response.raw()}")
                 
                 if (response.isSuccessful) {
-                    val product = response.body()
-                    if (product != null) {
+                    val producto = response.body()
+                    if (producto != null) {
                         _adminState.value = AdminState.Success("Producto creado exitosamente")
-                        _selectedProduct.value = product
-                        Log.d("AdminProductViewModel", "Product created successfully: ${product.title}")
+                        // Producto de Railway es diferente a Product de la app
+                        Log.d("AdminProductViewModel", "Product created successfully: ${producto.nombre}")
                     } else {
                         val error = "Respuesta vacía del servidor"
                         _adminState.value = AdminState.Error(error)
@@ -126,15 +144,16 @@ class AdminProductViewModel : ViewModel() {
      * Actualizar un producto existente
      */
     fun updateProduct(
-        slug: String,
-        title: String? = null,
-        price: Int? = null,
-        priceOffer: Int? = null,
-        image: String? = null,
-        description: String? = null,
+        productoId: String,
+        nombre: String? = null,
+        descripcion: String? = null,
+        precio: Double? = null,
+        categoria: String? = null,
         stock: Int? = null,
-        category: String? = null,
-        home: Boolean? = null
+        imagenes: List<String>? = null,
+        marca: String? = null,
+        descuento: Int? = null,
+        disponible: Boolean? = null
     ) {
         viewModelScope.launch {
             try {
@@ -142,31 +161,47 @@ class AdminProductViewModel : ViewModel() {
                 _adminState.value = AdminState.Loading
                 _errorMessage.value = null
                 
-                val request = UpdateProductRequest(
-                    title = title,
-                    price = price,
-                    priceOffer = priceOffer,
-                    image = image,
-                    description = description,
+                val token = sessionManager.getAuthToken()
+                if (token.isNullOrBlank()) {
+                    _adminState.value = AdminState.Error("Token no disponible")
+                    _errorMessage.value = "Token no disponible"
+                    return@launch
+                }
+                
+                // Mapear categoría de UI a backend
+                val categoriaBackend = when(categoria) {
+                    "Interior" -> "Hogar"
+                    "Exterior" -> "Deportes"
+                    else -> categoria
+                }
+                
+                val request = ActualizarProductoRequest(
+                    nombre = nombre,
+                    descripcion = descripcion,
+                    precio = precio,
+                    categoria = categoriaBackend,
                     stock = stock,
-                    category = category,
-                    home = home
+                    imagenes = imagenes,
+                    marca = marca,
+                    descuento = descuento,
+                    disponible = disponible
                 )
                 
-                Log.d("AdminProductViewModel", "Updating product: $slug")
+                Log.d("AdminProductViewModel", "Updating product: $productoId")
                 
-                val response = productApiService.updateProduct(slug, request)
+                val productosService = ApiConfig.getProductosService()
+                val response = productosService.actualizarProducto(productoId, "Bearer $token", request)
                 
                 Log.d("AdminProductViewModel", "Response code: ${response.code()}")
                 Log.d("AdminProductViewModel", "Response body: ${response.body()}")
                 
                 if (response.isSuccessful) {
-                    val updateResponse = response.body()
-                    if (updateResponse?.success == true) {
-                        _adminState.value = AdminState.Success(updateResponse.message)
-                        Log.d("AdminProductViewModel", "Product updated successfully")
+                    val producto = response.body()
+                    if (producto != null) {
+                        _adminState.value = AdminState.Success("Producto actualizado exitosamente")
+                        Log.d("AdminProductViewModel", "Product updated successfully: ${producto.nombre}")
                     } else {
-                        val error = updateResponse?.message ?: "Respuesta vacía del servidor"
+                        val error = "Respuesta vacía del servidor"
                         _adminState.value = AdminState.Error(error)
                         _errorMessage.value = error
                         Log.e("AdminProductViewModel", error)
@@ -174,7 +209,6 @@ class AdminProductViewModel : ViewModel() {
                 } else {
                     val errorBody = response.errorBody()?.string()
                     val error = when (response.code()) {
-                        405 -> "Error 405: La API no permite actualizar productos. Verifica la URL o contacta al backend."
                         403 -> "Error 403: No tienes permisos para actualizar productos"
                         404 -> "Error 404: Producto no encontrado"
                         400 -> "Error 400: Datos inválidos - $errorBody"
@@ -200,35 +234,45 @@ class AdminProductViewModel : ViewModel() {
     /**
      * Eliminar un producto
      */
-    fun deleteProduct(slug: String) {
+    fun deleteProduct(productoId: String) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 _adminState.value = AdminState.Loading
                 _errorMessage.value = null
                 
-                Log.d("AdminProductViewModel", "Deleting product: $slug")
+                val token = sessionManager.getAuthToken()
+                if (token.isNullOrBlank()) {
+                    _adminState.value = AdminState.Error("Token no disponible")
+                    _errorMessage.value = "Token no disponible"
+                    return@launch
+                }
                 
-                val response = productApiService.deleteProduct(slug)
+                Log.d("AdminProductViewModel", "Deleting product: $productoId")
+                
+                val productosService = ApiConfig.getProductosService()
+                val response = productosService.eliminarProducto(productoId, "Bearer $token")
                 
                 Log.d("AdminProductViewModel", "Response code: ${response.code()}")
                 Log.d("AdminProductViewModel", "Response body: ${response.body()}")
                 
                 if (response.isSuccessful) {
                     val deleteResponse = response.body()
-                    if (deleteResponse?.success == true) {
-                        _adminState.value = AdminState.Success(deleteResponse.message)
+                    // Backend devuelve Map<String, String> con mensaje
+                    val mensaje = deleteResponse?.get("message") ?: deleteResponse?.get("mensaje")
+                    if (mensaje != null) {
+                        _adminState.value = AdminState.Success(mensaje)
+                        _selectedProduct.value = null
+                        Log.d("AdminProductViewModel", "Product deleted successfully: $mensaje")
+                    } else {
+                        _adminState.value = AdminState.Success("Producto eliminado exitosamente")
                         _selectedProduct.value = null
                         Log.d("AdminProductViewModel", "Product deleted successfully")
-                    } else {
-                        val error = deleteResponse?.message ?: "Error al eliminar el producto"
-                        _adminState.value = AdminState.Error(error)
-                        _errorMessage.value = error
-                        Log.e("AdminProductViewModel", error)
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     val error = when (response.code()) {
+                        403 -> "Error 403: No tienes permisos para eliminar productos"
                         404 -> "Error 404: Producto no encontrado"
                         400 -> "Error 400: Datos inválidos - $errorBody"
                         else -> "Error ${response.code()}: ${response.message()} - $errorBody"
