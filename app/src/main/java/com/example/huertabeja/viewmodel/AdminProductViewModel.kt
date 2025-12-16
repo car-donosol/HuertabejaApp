@@ -25,13 +25,12 @@ class AdminProductViewModel(application: Application) : AndroidViewModel(applica
     
     private val productApiService = ApiConfig.getProductosService()
     
-    // Mapeo de categorías de la app a categorías del backend
+    // Mapeo de categorías - ahora son directas: Interior y Exterior
     private fun mapCategory(appCategory: String): String {
-        return when(appCategory.lowercase()) {
-            "interior", "plantas" -> "Hogar"
-            "exterior" -> "Hogar"
-            "decoración", "decoracion" -> "Hogar"
-            else -> "Otros"
+        return when(appCategory) {
+            "Interior" -> "Interior"
+            "Exterior" -> "Exterior"
+            else -> "Interior" // Default
         }
     }
     
@@ -74,6 +73,13 @@ class AdminProductViewModel(application: Application) : AndroidViewModel(applica
                 
                 val mappedCategory = mapCategory(category)
                 
+                // Calcular porcentaje de descuento (0-100)
+                val descuentoPorcentaje = if (priceOffer > 0 && priceOffer < price) {
+                    ((price - priceOffer) * 100 / price)
+                } else {
+                    0
+                }
+                
                 val request = CrearProductoRequest(
                     nombre = title,
                     descripcion = description,
@@ -82,7 +88,7 @@ class AdminProductViewModel(application: Application) : AndroidViewModel(applica
                     stock = stock,
                     imagenes = listOf(image),
                     marca = null,
-                    descuento = priceOffer,
+                    descuento = descuentoPorcentaje,
                     disponible = true
                 )
                 
@@ -168,10 +174,10 @@ class AdminProductViewModel(application: Application) : AndroidViewModel(applica
                     return@launch
                 }
                 
-                // Mapear categoría de UI a backend
+                // Mapear categoría de UI a backend (ahora son directas)
                 val categoriaBackend = when(categoria) {
-                    "Interior" -> "Hogar"
-                    "Exterior" -> "Deportes"
+                    "Interior" -> "Interior"
+                    "Exterior" -> "Exterior"
                     else -> categoria
                 }
                 
