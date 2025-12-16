@@ -59,7 +59,10 @@ fun OrdersScreen(
     val clpFormat = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
     clpFormat.maximumFractionDigits = 0
     
-    val userId: String? = null
+    // Obtener el context para SessionManager
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val userId = remember { sessionManager.getUserId() }
     
     LaunchedEffect(Unit) {
         ordersViewModel.loadOrders(userId)
