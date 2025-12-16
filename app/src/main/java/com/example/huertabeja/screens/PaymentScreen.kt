@@ -29,6 +29,7 @@ import com.example.huertabeja.data.model.AddressInfo
 import com.example.huertabeja.ui.viewmodel.MercadoPagoUiState
 import com.example.huertabeja.ui.viewmodel.MercadoPagoViewModel
 import com.example.huertabeja.ui.viewmodel.PaymentResult
+import com.example.huertabeja.utils.SessionManager
 import com.example.huertabeja.viewmodel.CartUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,14 +46,19 @@ fun PaymentScreen(
     val mpUiState by mercadoPagoViewModel.uiState.collectAsStateWithLifecycle()
     val paymentResult by mercadoPagoViewModel.paymentResult.collectAsStateWithLifecycle()
     
+    // Obtener datos del usuario logueado
+    val sessionManager = remember { SessionManager(context) }
+    val userEmail = remember { sessionManager.getUserEmail() ?: "" }
+    val userName = remember { sessionManager.getUserName() ?: "" }
+    
     // Campos de dirección
     var calle by remember { mutableStateOf("") }
     var ciudad by remember { mutableStateOf("") }
     var estado by remember { mutableStateOf("") }
     var codigoPostal by remember { mutableStateOf("") }
     var pais by remember { mutableStateOf("Chile") }
-    var nombreCompleto by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
+    var nombreCompleto by remember { mutableStateOf(userName) }
+    var email by remember { mutableStateOf(userEmail) }
 
     // Validación del formulario
     val isFormComplete = calle.isNotBlank() &&
